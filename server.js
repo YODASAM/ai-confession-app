@@ -12,6 +12,9 @@ app.use(express.static('public'));
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+if (!GROQ_API_KEY) {
+  console.error("GROQ_API_KEY missing!");
+}
 
 app.post('/api/generate-confession', async (req, res) => {
   const { type, context, details, tone } = req.body;
