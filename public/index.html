@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Confession & Apology Generator</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,700" rel="stylesheet" />
+  <style>
+    body { font-family: 'Roboto', sans-serif; background: #f6f1f5; margin: 0; color: #222; }
+    header { background: #7c3aed; color: #fff; padding: 2em 1em; text-align: center; }
+    main { max-width: 540px; margin: 2em auto; background: #fff; border-radius: 12px; box-shadow: 0 6px 18px rgba(80,20,120,0.08); padding: 2em;}
+    h1, h2 { margin: 0.2em 0; font-weight: 700; }
+    .form-group { margin-bottom: 1.4em; }
+    label { display: block; font-weight: bold; margin-bottom: 0.5em; }
+    textarea, select, input { width: 100%; padding: 0.8em; border-radius: 6px; border: 1px solid #d8d8d8; font-size: 1em; }
+    .btn { background: #7c3aed; color: white; padding: 0.9em 2em; border: none; border-radius: 6px; font-size: 1.1em; cursor: pointer; margin: 1rem 0; display: inline-block; text-decoration: none; text-align: center; }
+    .btn:hover { background: #6d28d9; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
+    .section { margin-top: 2em; }
+    #loading { font-style: italic; color: #555; display: none; }
+    .public-feed { margin-top: 2em; background: #f3f0fa; padding: 1em; border-radius: 10px; }
+    .confession { border-bottom: 1px solid #e0ddef; margin-bottom: 1.3em; padding-bottom: 1em; }
+    .confession:last-child { border-bottom: none; }
+    .votes { color: #7c3aed; margin-left: 0.5em; font-weight: bold; }
+    footer { margin: 2em 0 1em 0; text-align: center; font-size: 0.9em; color: #666; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Confess & Apologize - AI Style</h1>
+  <p>Say what’s hard. AI crafts your perfect confession or apology — and you can share it anonymously!</p>
+</header>
+<main>
+  <h2>Create Your Confession/Apology</h2>
+  <form id="confessionForm">
+    <div class="form-group">
+      <label for="type">Type</label>
+      <select id="type" required>
+        <option value="confession">Confession</option>
+        <option value="apology">Apology</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="context">Context (relationship/work/friend/etc.)</label>
+      <input type="text" id="context" required placeholder="Ex: Work mistake, relationship misunderstanding..." />
+    </div>
+    <div class="form-group">
+      <label for="details">What do you want to say?</label>
+      <textarea id="details" rows="4" required placeholder="Describe your situation..."></textarea>
+    </div>
+    <div class="form-group">
+      <label for="tone">Tone/Style</label>
+      <select id="tone" required>
+        <option value="sincere">Sincere</option>
+        <option value="humorous">Humorous</option>
+        <option value="formal">Formal</option>
+        <option value="poetic">Poetic</option>
+        <option value="uplifting">Uplifting</option>
+      </select>
+    </div>
+    <button type="submit" class="btn">Generate with AI</button>
+  </form>
+
+  <div id="loading" class="section">Generating your confession/apology... Please wait.</div>
+
+  <div id="aiResult" class="section" style="display:none;">
+    <h2>Your AI-Generated Message</h2>
+    <div id="aiText" style="background:#e9e6fa;padding:1em;border-radius:8px;margin-bottom:1em;white-space: pre-wrap; font-size:1.1em;"></div>
+    <p><strong>That apology just saved your day — for just one pound, pass the kindness.</strong> Pay just <strong>a single pound</strong>!</p>
+    <a href="https://buy.stripe.com/cNi4gr1PG8r7aLJ4aUfrW01" class="btn" target="_blank">Pay a pound</a>
+    <p style="margin-top:0.7em;font-size:0.9em;color:#888;">Secured by Stripe • Instant Access</p>
+  </div>
+
+  <div class="section public-feed">
+    <h2>Public Anon Feed</h2>
+    <div id="feedContainer"></div>
+  </div>
+</main>
+
+<footer>
+  Made with ♥ in Chennai • <a href="#">Contact</a> | <a href="#">Privacy</a>
+</footer>
+
+<script>
+  const form = document.getElementById('confessionForm');
+  const aiTextDiv = document.getElementById('aiText');
+  const aiResultDiv = document.getElementById('aiResult');
+  const loadingDiv = document.getElementById('loading');
+  const feedContainer = document.getElementById('feedContainer');
+
+  // Load public feed
+  fetch('/api/feed')
+    .then(res => res.json())
+    .then(feed => {
+      feedContainer.innerHTML = feed.map(item => `
+        <div class="confession">
+          "${item.text}"
+          <br /><span class="votes">👍 ${item.likes} | 😂 ${item.laugh}</span>
+        </div>
+      `).join('');
+    });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const type = document.getElementById('type').value;
+    const context = document.getElementById('context').value.trim();
+    const details = document.getElementById('details').value.trim();
+    const tone = document.getElementById('tone').value;
+
+    loadingDiv.style.display = 'block';
+    aiResultDiv.style.display = 'none';
+
+    try {
+      const response = await fetch('/api/generate-confession', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, context, details, tone })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed');
+
+      aiTextDiv.textContent = data.generatedText;
+      aiResultDiv.style.display = 'block';
+    } catch (err) {
+      aiTextDiv.textContent = 'Error: ' + err.message;
+      aiResultDiv.style.display = 'block';
+    } finally {
+      loadingDiv.style.display = 'none';
+    }
+  });
+</script>
+</body>
+</html>
